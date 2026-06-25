@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "dev-loop-marketplace",
+  "owner": {
+    "name": "Yuhei Nakasaka"
+  },
+  "plugins": [
+    {
+      "name": "dev-loop",
+      "source": "./plugins/dev-loop",
+      "description": "Plan + state + /step loop-engineering harness for any project. Drive work through a verified, resumable, one-step-at-a-time plan."
+    }
+  ]
+}

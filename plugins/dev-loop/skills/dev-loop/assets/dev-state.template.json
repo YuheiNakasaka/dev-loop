@@ -1,0 +1,45 @@
+{
+  "project": "{{PROJECT}}",
+  "planDoc": ".claude/dev-plan.md",
+  "reviewSource": null,
+  "branch": "{{BRANCH}}",
+  "planVersion": "1.0.0",
+  "lastUpdated": "{{DATE}}-init",
+  "baseline": {
+    "commit": "{{BASELINE_COMMIT}}",
+    "typecheck": "{{BASELINE_TYPECHECK}}",
+    "test": "{{BASELINE_TEST}}",
+    "lint": "{{BASELINE_LINT}}",
+    "build": "{{BASELINE_BUILD}}"
+  },
+  "gateCommands": {
+    "typecheck": "{{GATE_TYPECHECK}}",
+    "test": "{{GATE_TEST}}",
+    "lint": "{{GATE_LINT}}",
+    "build": "{{GATE_BUILD}}"
+  },
+  "currentStep": 1,
+  "steps": [
+    {
+      "id": 1,
+      "phase": "{{PHASE}}",
+      "title": "{{STEP_TITLE}}",
+      "reviewIds": [],
+      "dependsOn": [],
+      "goal": "{{STEP_GOAL}}",
+      "status": "pending",
+      "startedAt": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": {
+        "typecheck": "",
+        "test": "",
+        "lint": "",
+        "build": "",
+        "notes": ""
+      },
+      "learnings": []
+    }
+  ],
+  "globalLearnings": []
+}
