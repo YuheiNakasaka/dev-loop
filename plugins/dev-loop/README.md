@@ -11,15 +11,21 @@ All configuration lives in `dev-state.json`, so the commands are completely proj
 
 | Command | What it does |
 |---|---|
-| `/plan-init [goal · spec · review doc]` | Scaffolds `dev-plan.md` + `dev-state.json`, auto-detects quality gates, and records a baseline. |
-| `/step [id]` | Runs one step: check deps → implement → run gates → update state → one commit per step. No arg = next pending. |
-| `/plan-status` | Read-only progress view. |
+| `/plan-init [goal · spec · review doc]` | Scaffolds `dev-plan.md` + `dev-state.json`, auto-detects quality gates, records a baseline, and sets up the review gate. |
+| `/step [id]` | Runs one step: check deps → implement → run gates → **hierarchical review gate** → update state → one commit per step. No arg = next pending. |
+| `/step-review [id]` | Read-only: runs only the review gate against the working tree and reports the verdict. No edits, no commit, no advance. |
+| `/plan-status` | Read-only progress view (incl. review verdicts and blocked steps' human tasks). |
 
 > A project-local command of the same name shadows the plugin's; invoke explicitly with `/dev-loop:step` if needed.
 
+## Hierarchical review gate
+
+Each `/step` ends with a **self-contained, hierarchical, iterative review** (no external plugin needed): perspective reviewers (`dev-reviewer`, breadth) in parallel → a meta-reviewer (`dev-review-meta`, *review of the review*) that adjudicates against the step's goal/scope → auto-fix & re-review for several rounds until it converges → the refined verdict drives the next action (commit & advance / leave **`blocked`** for human-only fixes / spin out-of-scope findings into new steps). Configured via `dev-state.json`'s `review` block; set `enabled: false` to keep the classic behavior.
+
 ## Reference
 
-- Protocol, `dev-state.json` JSON schema, and the *implement-vs-gate* framework: [`skills/dev-loop/SKILL.md`](./skills/dev-loop/SKILL.md)
+- Protocol, `dev-state.json` JSON schema, the *implement-vs-gate* framework, and the review-gate protocol: [`skills/dev-loop/SKILL.md`](./skills/dev-loop/SKILL.md)
+- Built-in review engine: [`agents/dev-reviewer.md`](./agents/dev-reviewer.md), [`agents/dev-review-meta.md`](./agents/dev-review-meta.md), perspective catalog [`skills/dev-loop/assets/review-perspectives.md`](./skills/dev-loop/assets/review-perspectives.md)
 - Templates: [`skills/dev-loop/assets/`](./skills/dev-loop/assets/)
 
 For install instructions and the full write-up, see the [repository README](../../README.md).

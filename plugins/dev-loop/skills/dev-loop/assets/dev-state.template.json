@@ -18,6 +18,24 @@
     "lint": "{{GATE_LINT}}",
     "build": "{{GATE_BUILD}}"
   },
+  "review": {
+    "enabled": true,
+    "maxRounds": 3,
+    "blockOn": "must",
+    "autoFix": true,
+    "perspectives": [
+      "principles",
+      "architecture",
+      "code-quality",
+      "correctness",
+      "testing",
+      "security",
+      "performance",
+      "ui-ux",
+      "documentation",
+      "ai-generated"
+    ]
+  },
   "currentStep": 1,
   "steps": [
     {
@@ -36,7 +54,8 @@
         "test": "",
         "lint": "",
         "build": "",
-        "notes": ""
+        "notes": "",
+        "review": null
       },
       "learnings": []
     }
