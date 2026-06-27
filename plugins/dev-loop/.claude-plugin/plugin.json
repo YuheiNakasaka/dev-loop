@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dev-loop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Loop-engineering harness: a markdown plan (dev-plan.md) + a JSON state ledger (dev-state.json) + a /step command that executes one verified step at a time. State lives in files, so you can /clear between steps and resume. Works on any project.",
   "author": {
     "name": "Yuhei Nakasaka"
