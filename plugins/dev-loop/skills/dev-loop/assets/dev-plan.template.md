@@ -26,9 +26,12 @@
   7. Layer1: git diff <baseCommit> を perspectives[] の dev-reviewer で並行レビュー → Layer2: dev-review-meta で裁定
   8. 収束（blockOn 以上の未解決なし）→ 9 へ。autoFix 可能な must は自動修正→ゲート再実行→再レビュー。未収束（requiresHuman/オシレーション/maxRounds 超過）は blocked
 [完了時]
-  9. 収束時: dev-state.json に status=done, completedAt, verification(gates＋review), learnings を記録
- 10. 収束時のみ git commit（1 ステップ = 1 コミット。レビュー時はメッセージ末尾に [review: <verdict>, <rounds>r] を付記）。未収束は blocked でコミットせず停止・報告
- 11. 収束時のみ currentStep を次へ、lastUpdated を更新
+  9. 収束時: dev-state.json を**コミット前に最終形へ**（status=done, completedAt, verification(gates＋review), learnings,
+     さらに currentStep を次へ・lastUpdated を更新。currentStep/lastUpdated をコミット後に回さない＝コミット漏れの主因）。
+     未収束は status=blocked で記録し currentStep 据え置き、コミットせず作業ツリー dirty のまま停止・報告
+ 10. 収束時のみ git add -A で dev-state.json＋本書(dev-plan.md)＋実装を**一括ステージ**（git commit -am や部分 add は使わない＝制御ファイル漏れの主因）
+ 11. 収束時のみ git commit（1 ステップ = 1 コミット。レビュー時はメッセージ末尾に [review: <verdict>, <rounds>r] を付記）
+     → 直後に git status で clean を確認（dev-state.json/dev-plan.md の未コミット残差分はコミット漏れ＝追従コミットで取り込む）
 ```
 
 ### 起動方法（コンテキストを毎回クリアして進める運用）
