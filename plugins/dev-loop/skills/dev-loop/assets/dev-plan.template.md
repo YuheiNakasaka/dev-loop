@@ -15,26 +15,30 @@
 
 ```
 [開始前]
-  1. dev-state.json を読む（planDoc/branch/gateCommands/currentStep/steps/globalLearnings を取得）
+  1. dev-state.json を読む（planDoc/branch/gateCommands/review/currentStep/steps/globalLearnings を取得）
   2. 当ステップの dependsOn が全て status=done かつ verification 緑か確認（未完/退行は先に是正）
   3. globalLearnings で既知の地雷を再確認
   4. 当ステップの「ゴール / 成功条件 / 検証方法」を本書で再確認
 [実行中]
-  5. dev-state.json の当ステップを status=in-progress, startedAt にセット
+  5. dev-state.json の当ステップを status=in-progress, startedAt にセット（review.enabled なら verification.review.baseCommit に現 HEAD を記録）
+  6. 「検証方法」＋ 品質ゲートを実行し退行ゼロを確認
+[階層的レビューゲート（review.enabled のとき。round r=1..maxRounds）]
+  7. Layer1: git diff <baseCommit> を perspectives[] の dev-reviewer で並行レビュー → Layer2: dev-review-meta で裁定
+  8. 収束（blockOn 以上の未解決なし）→ 9 へ。autoFix 可能な must は自動修正→ゲート再実行→再レビュー。未収束（requiresHuman/オシレーション/maxRounds 超過）は blocked
 [完了時]
-  6. 「検証方法」＋ 4 つの品質ゲートを実行し退行ゼロを確認
-  7. dev-state.json に status=done, completedAt, commit, verification, learnings を記録
-  8. git commit（1 ステップ = 1 コミット）
-  9. currentStep を次へ、lastUpdated を更新
+  9. 収束時: dev-state.json に status=done, completedAt, verification(gates＋review), learnings を記録
+ 10. 収束時のみ git commit（1 ステップ = 1 コミット。レビュー時はメッセージ末尾に [review: <verdict>, <rounds>r] を付記）。未収束は blocked でコミットせず停止・報告
+ 11. 収束時のみ currentStep を次へ、lastUpdated を更新
 ```
 
 ### 起動方法（コンテキストを毎回クリアして進める運用）
 
 状態を本書 ＋ `.claude/dev-state.json` に外出ししているため `/clear` でコンテキストを消しても継続できる。
 
-- `/step` … 次の pending（in-progress があれば再開）を進める
+- `/step` … 次の pending（in-progress があれば再開）を進める。**末尾に階層的レビューゲートを実行**する
 - `/step 3` … 特定ステップを指定して進める
-- `/plan-status` … 進捗を確認する
+- `/step-review` … レビューゲートだけを現作業ツリーに対して回す（読み取り専用。コミット/前進しない）
+- `/plan-status` … 進捗を確認する（レビュー verdict・blocked の人間タスクも表示）
 
 ### 品質ゲート（全ステップ共通の回帰チェック）
 
@@ -44,6 +48,13 @@
 | テスト | `{{GATE_TEST}}` | {{BASELINE_TEST}} | 常に PASS。件数は増える方向 |
 | Lint | `{{GATE_LINT}}` | {{BASELINE_LINT}} | 緑化以降は常に PASS |
 | ビルド | `{{GATE_BUILD}}` | {{BASELINE_BUILD}} | 常に PASS |
+
+### 階層的レビューゲート設定（dev-state.json `review`）
+
+ゲートが緑になった後、各ステップ末尾で**観点別 reviewer の並行レビュー（Layer 1）→ メタレビュー（Layer 2）→ 反復**を
+回し、最終結果で次処理を決める。設定: `enabled={{REVIEW_ENABLED}}` / `maxRounds={{REVIEW_MAX_ROUNDS}}` /
+`blockOn={{REVIEW_BLOCK_ON}}` / `autoFix={{REVIEW_AUTOFIX}}` / `perspectives={{REVIEW_PERSPECTIVES}}`。
+詳細プロトコルは dev-loop スキルの「階層的レビューゲート」節、観点定義は `assets/review-perspectives.md`。
 
 ---
 
@@ -85,6 +96,6 @@
 - **検証方法**: {{STEP_VERIFICATION}}
 - **想定変更ファイル**: `{{FILE}}:{{LINE}}`（計画時点。着手時に現物で再確認）
 - **依存**: なし
-- **コミットメッセージ**: `Step 1: {{STEP_TITLE}}`
+- **コミットメッセージ**: `Step 1: {{STEP_TITLE}}`（レビュー実施時は末尾に `[review: <verdict>, <rounds>r]` を付記）
 
 <!-- 以降 Step 2, 3, … を同フォーマットで追加 -->

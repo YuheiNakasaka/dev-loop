@@ -17,11 +17,23 @@ Because every setting lives in `dev-state.json`, the commands are completely pro
 
 | Command | What it does |
 |---|---|
-| `/plan-init [goal · spec · path to a review doc]` | Scaffolds `dev-plan.md` + `dev-state.json`. Auto-detects quality gates (typecheck / test / lint / build), confirms them with you, and records a baseline (HEAD commit + gate results). |
-| `/step [id]` | Runs **one** step: check dependencies → implement → run the gates → update state → **one commit per step**. With no argument it runs the next pending step (and resumes an in-progress one). |
-| `/plan-status` | Read-only progress view: step table, completion %, gate-regression check, accumulated learnings. |
+| `/plan-init [goal · spec · path to a review doc]` | Scaffolds `dev-plan.md` + `dev-state.json`. Auto-detects quality gates (typecheck / test / lint / build), confirms them with you, records a baseline (HEAD commit + gate results), and sets up the review gate. |
+| `/step [id]` | Runs **one** step: check dependencies → implement → run the gates → **hierarchical review gate** → update state → **one commit per step**. With no argument it runs the next pending step (and resumes an in-progress one). |
+| `/step-review [id]` | Read-only: runs **only** the review gate against the current working tree and reports the verdict. Never edits, commits, or advances `currentStep`. Useful after manual fixes or as a pre-commit dry run. |
+| `/plan-status` | Read-only progress view: step table (with review verdicts), completion %, gate-regression check, blocked steps' human tasks, accumulated learnings. |
 
 > If a project already defines a command with the same name locally (e.g. `.claude/commands/step.md`), the local one wins. In that case invoke the plugin version explicitly as `/dev-loop:step`.
+
+## Hierarchical review gate
+
+At the end of every `/step` (after the quality gates pass, before commit), dev-loop runs a **self-contained, hierarchical, iterative code review** — no external plugin required:
+
+- **Layer 1 (breadth)** — one `dev-reviewer` sub-agent per perspective (correctness, architecture, security, testing, performance, … — a built-in catalog comparable in breadth to a full PR review) reviews the step's diff in parallel and returns labeled findings (`[must]/[ask]/[suggestion]/[nits]`).
+- **Layer 2 (meta — *review of the review*)** — a `dev-review-meta` sub-agent dedupes, refutes false positives against the real code, classifies each finding by scope (in-step / out-of-scope / dependency), reconciles against the step's success criteria, and decides what truly must be fixed.
+- **Iterate** — fixable `[must]` findings are auto-fixed, the gates re-run, and the diff is re-reviewed for several rounds until it converges. An oscillation guard and a `maxRounds` cap prevent non-terminating loops.
+- **Decide the next action** — on a clean result the step is committed and `currentStep` advances; findings that need a human (infra/config/credentials/judgment calls) leave the step **`blocked`** with a human task list instead of being auto-edited; valid out-of-scope findings become new steps.
+
+Everything is configured in `dev-state.json`'s `review` block (`enabled`, `maxRounds`, `blockOn`, `autoFix`, `perspectives`). Set `enabled: false` (or omit the block) to keep the classic behavior.
 
 ## Install
 
@@ -75,7 +87,7 @@ This follows the same lineage as [GitHub Spec Kit](https://github.com/github/spe
 
 ## State schema & design principles
 
-The full execution protocol, the `dev-state.json` JSON schema, the `dev-plan.md` structure, and the *implement-vs-gate* decision framework all live in the bundled skill — the single source of truth:
+The full execution protocol, the `dev-state.json` JSON schema, the `dev-plan.md` structure, the *implement-vs-gate* decision framework, and the **hierarchical review gate** protocol all live in the bundled skill — the single source of truth:
 
 - [`plugins/dev-loop/skills/dev-loop/SKILL.md`](./plugins/dev-loop/skills/dev-loop/SKILL.md)
 - Templates: [`plugins/dev-loop/skills/dev-loop/assets/`](./plugins/dev-loop/skills/dev-loop/assets/)
@@ -90,8 +102,9 @@ dev-loop/
 └── plugins/dev-loop/                   # the plugin
     ├── .claude-plugin/plugin.json
     ├── README.md
-    ├── commands/                       # /step, /plan-init, /plan-status
-    └── skills/dev-loop/                # SKILL.md (protocol + schema) + assets/ (templates)
+    ├── commands/                       # /step, /step-review, /plan-init, /plan-status
+    ├── agents/                         # dev-reviewer, dev-review-meta (built-in review engine)
+    └── skills/dev-loop/                # SKILL.md (protocol + schema) + assets/ (templates + review-perspectives)
 ```
 
 > The command prose is written in Japanese — that is the workflow the author uses day to day. The commands work regardless of your Claude Code UI language; translation PRs are welcome.
