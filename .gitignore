@@ -14,3 +14,6 @@ node_modules/
 
 # Claude Code local, machine-specific settings
 .claude/settings.local.json
+
+# dev-loop local state (per-developer, not committed — avoids multi-person merge conflicts)
+.claude/dev-state.json

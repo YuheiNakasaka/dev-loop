@@ -1,6 +1,6 @@
 {
   "project": "{{PROJECT}}",
-  "planDoc": ".claude/dev-plan.md",
+  "planDoc": "{{PLAN_DOC}}",
   "reviewSource": null,
   "branch": "{{BRANCH}}",
   "planVersion": "1.0.0",
