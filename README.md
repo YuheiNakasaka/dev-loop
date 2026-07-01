@@ -8,8 +8,8 @@ A **plan + state + `/step`** loop-engineering harness for [Claude Code](https://
 
 Two files become the source of truth — not the chat history:
 
-- **`.claude/dev-plan.md`** — the spec (*what to do*): an ordered list of steps, each with a goal, success criteria, verification method, and dependencies.
-- **`.claude/dev-state.json`** — the ledger (*what happened* + config): per-step status, gate results, learnings, and **all settings** (working branch, quality-gate commands, project name, plan path).
+- **`.claude/dev-plans/<date>-<slug>.md`** — the spec (*what to do*): an ordered list of steps, each with a goal, success criteria, verification method, and dependencies. `/plan-init` writes a **new file every run and never overwrites** an earlier plan, so past plans (and the decisions behind them) are preserved as files + in git history; the active plan is whatever `dev-state.json`'s `planDoc` points to.
+- **`.claude/dev-state.json`** — the ledger (*what happened* + config): per-step status, gate results, learnings, and **all settings** (working branch, quality-gate commands, project name, plan path). **Git-ignored and local (per-developer)** — it changes on every step and would otherwise cause merge conflicts on multi-person projects; teammates track progress via the committed plan files + the `Step N: <title>` commit history.
 
 Because every setting lives in `dev-state.json`, the commands are completely project-agnostic. The same `/step` works in any repository.
 
@@ -17,7 +17,7 @@ Because every setting lives in `dev-state.json`, the commands are completely pro
 
 | Command | What it does |
 |---|---|
-| `/plan-init [goal · spec · path to a review doc]` | Scaffolds `dev-plan.md` + `dev-state.json`. Auto-detects quality gates (typecheck / test / lint / build), confirms them with you, records a baseline (HEAD commit + gate results), and sets up the review gate. |
+| `/plan-init [goal · spec · path to a review doc]` | Scaffolds a new `.claude/dev-plans/<date>-<slug>.md` (never overwriting an earlier plan) + a local `.claude/dev-state.json` (which it adds to `.gitignore`). Auto-detects quality gates (typecheck / test / lint / build), confirms them with you, records a baseline (HEAD commit + gate results), and sets up the review gate. |
 | `/step [id]` | Runs **one** step: check dependencies → implement → run the gates → **hierarchical review gate** → update state → **one commit per step**. With no argument it runs the next pending step (and resumes an in-progress one). |
 | `/step-review [id]` | Read-only: runs **only** the review gate against the current working tree and reports the verdict. Never edits, commits, or advances `currentStep`. Useful after manual fixes or as a pre-commit dry run. |
 | `/plan-status` | Read-only progress view: step table (with review verdicts), completion %, gate-regression check, blocked steps' human tasks, accumulated learnings. |
@@ -66,7 +66,7 @@ To enable the plugin across all your projects automatically, add it to `~/.claud
 
 ```text
 /plan-init "Refactor the auth flow: fix the token-refresh bug and add tests"
-#   → detects gates → confirms → writes .claude/dev-plan.md + .claude/dev-state.json
+#   → detects gates → confirms → writes a new .claude/dev-plans/<date>-<slug>.md + a local (git-ignored) .claude/dev-state.json
 
 /step          # run step 1, then commit
 /clear         # safe to clear — the state is on disk
@@ -81,13 +81,13 @@ On long-horizon tasks the context window fills up; summarization or `/clear` los
 
 - **Resumable** — survives `/clear`, compaction, and fresh sessions.
 - **Verified** — every step must pass the project's quality gates, so regressions surface immediately.
-- **Traceable** — one commit per step makes `git bisect` trivial, and `learnings` accumulate project-specific knowledge.
+- **Traceable** — one commit per step (the plan file + code; the local state ledger is git-ignored) makes `git bisect` trivial, and `learnings` accumulate project-specific knowledge.
 
 This follows the same lineage as [GitHub Spec Kit](https://github.com/github/spec-kit) (spec → plan → tasks) and Anthropic's writing on [effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) — external memory plus a verification loop.
 
 ## State schema & design principles
 
-The full execution protocol, the `dev-state.json` JSON schema, the `dev-plan.md` structure, the *implement-vs-gate* decision framework, and the **hierarchical review gate** protocol all live in the bundled skill — the single source of truth:
+The full execution protocol, the `dev-state.json` JSON schema, the plan-file (`dev-plan.md`) structure, the *implement-vs-gate* decision framework, and the **hierarchical review gate** protocol all live in the bundled skill — the single source of truth:
 
 - [`plugins/dev-loop/skills/dev-loop/SKILL.md`](./plugins/dev-loop/skills/dev-loop/SKILL.md)
 - Templates: [`plugins/dev-loop/skills/dev-loop/assets/`](./plugins/dev-loop/skills/dev-loop/assets/)
