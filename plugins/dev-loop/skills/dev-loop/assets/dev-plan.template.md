@@ -3,11 +3,11 @@
 - **出典**: {{REVIEW_SOURCE}}
 - **起点コミット**: `{{BASELINE_COMMIT}}`
 - **作業ブランチ**: `{{BRANCH}}`
-- **状態ファイル**: `.claude/dev-state.json`（実行台帳。各ステップの完了状態・検証結果・学びを記録）
+- **状態ファイル**: `.claude/dev-state.json`（実行台帳。各ステップの完了状態・検証結果・学びを記録。**git 管理しない — `.gitignore` 済み・ローカル/開発者ごと**。多人数開発でのマージコンフリクトを避けるため）
 - **計画バージョン**: 1.0.0
 
 このドキュメントは「**何をやるか（仕様）**」の正典。`.claude/dev-state.json` は「**何が起きたか（状態）**」の正典。
-両者を併読して 1 ステップずつ確実に進める。
+両者を併読して 1 ステップずつ確実に進める。状態台帳はコミットされない（ローカル）ため、他メンバー/別マシンでは進捗をこの計画ファイル＋ `Step N: title` のコミット履歴から辿る。
 
 ---
 
@@ -26,12 +26,12 @@
   7. Layer1: git diff <baseCommit> を perspectives[] の dev-reviewer で並行レビュー → Layer2: dev-review-meta で裁定
   8. 収束（blockOn 以上の未解決なし）→ 9 へ。autoFix 可能な must は自動修正→ゲート再実行→再レビュー。未収束（requiresHuman/オシレーション/maxRounds 超過）は blocked
 [完了時]
-  9. 収束時: dev-state.json を**コミット前に最終形へ**（status=done, completedAt, verification(gates＋review), learnings,
-     さらに currentStep を次へ・lastUpdated を更新。currentStep/lastUpdated をコミット後に回さない＝コミット漏れの主因）。
+  9. 収束時: dev-state.json を**最終形へ**（status=done, completedAt, verification(gates＋review), learnings,
+     さらに currentStep を次へ・lastUpdated を更新）。dev-state.json は git 管理外＝コミットされない（ローカルのみ）。
      未収束は status=blocked で記録し currentStep 据え置き、コミットせず作業ツリー dirty のまま停止・報告
- 10. 収束時のみ git add -A で dev-state.json＋本書(dev-plan.md)＋実装を**一括ステージ**（git commit -am や部分 add は使わない＝制御ファイル漏れの主因）
+ 10. 収束時のみ git add -A で **本書(計画ファイル)＋実装** を**一括ステージ**（dev-state.json は .gitignore 済みで staged されない＝ローカルのまま。git commit -am や部分 add は使わない＝計画ファイル漏れの主因）
  11. 収束時のみ git commit（1 ステップ = 1 コミット。レビュー時はメッセージ末尾に [review: <verdict>, <rounds>r] を付記）
-     → 直後に git status で clean を確認（dev-state.json/dev-plan.md の未コミット残差分はコミット漏れ＝追従コミットで取り込む）
+     → 直後に git status --porcelain で clean を確認（ignored な dev-state.json は表示されない。計画ファイルの未コミット残差分はコミット漏れ＝追従コミットで取り込む）
 ```
 
 ### 起動方法（コンテキストを毎回クリアして進める運用）
